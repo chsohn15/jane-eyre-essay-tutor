@@ -240,7 +240,7 @@ export default function App() {
 
         {/* Header */}
         <div style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: isMobile ? "10px 14px" : "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={handleReset}>
             <Bird />
             <div>
               <div style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 16 : 20, color: t.accent }}>Jane Eyre Essay Tutor</div>
