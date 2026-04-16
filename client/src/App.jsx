@@ -60,6 +60,8 @@ export default function App() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [started, setStarted] = useState(false)
+  const [activeTab, setActiveTab] = useState("chat")
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
 
   const t = themes[theme]
 
@@ -75,6 +77,12 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener("resize", handler)
+    return () => window.removeEventListener("resize", handler)
+  }, [])
+
   async function handleStart() {
     if (!question.trim()) return
     setLoading(true)
@@ -84,6 +92,7 @@ export default function App() {
       setMessages(res.data.messages)
       setConversation([{ role: "tutor", text: res.data.tutor_message }])
       setStarted(true)
+      setActiveTab("chat")
     } catch (err) {
       console.error(err)
     }
@@ -154,32 +163,102 @@ export default function App() {
     </svg>
   )
 
+  const PassagesPanel = () => (
+    <div style={{ overflowY: "auto", padding: 16, background: t.leftBg, flex: 1 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: t.subtext, marginBottom: 12 }}>
+        Retrieved Passages
+      </div>
+      {passages.map((p, i) => (
+        <div key={i} style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 6 }}>
+            Passage {i + 1} · {p.chapter}
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.65, color: t.text }}>
+            {p.text}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const ChatPanel = () => (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg, overflow: "hidden" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        {conversation.map((msg, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: msg.role === "student" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: msg.role === "student" ? "80%" : "88%",
+              background: msg.role === "student" ? t.accent : t.surface,
+              border: msg.role === "student" ? "none" : `0.5px solid ${t.border}`,
+              borderRadius: msg.role === "student" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+              padding: "12px 14px"
+            }}>
+              {msg.role === "tutor" && (
+                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 5 }}>
+                  Tutor
+                </div>
+              )}
+              <div style={{ fontSize: 13, lineHeight: 1.6, color: msg.role === "student" ? t.accentText : t.text, fontWeight: msg.role === "student" ? 500 : 400 }}>
+                {msg.text}
+              </div>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: "12px 12px 12px 2px", padding: "12px 14px", fontSize: 13, color: t.subtext }}>
+              Thinking...
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ borderTop: `0.5px solid ${t.border}`, padding: "12px 14px", display: "flex", gap: 8, background: t.leftBg }}>
+        <input
+          style={{ flex: 1, border: `0.5px solid ${t.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: t.inputBg, color: t.text, fontFamily: "'Inter', sans-serif", outline: "none" }}
+          placeholder="Respond to the tutor..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !loading && handleChat()}
+          disabled={loading}
+        />
+        <button
+          onClick={handleChat}
+          disabled={loading || !input.trim()}
+          style={{ background: t.accent, color: t.accentText, border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontFamily: "'Inter', sans-serif", fontWeight: 500, cursor: "pointer", opacity: loading || !input.trim() ? 0.5 : 1 }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  )
+
   return (
-    <div style={{ minHeight: "100vh", background: t.bg, color: t.text, fontFamily: "'Inter', sans-serif", transition: "background 0.25s", position: "relative" }}>
+    <div style={{ height: "100vh", overflow: "hidden", background: t.bg, color: t.text, fontFamily: "'Inter', sans-serif", transition: "background 0.25s", position: "relative" }}>
       <Texture />
-      <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", zIndex: 1, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
-        <div style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: isMobile ? "10px 14px" : "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Bird />
             <div>
-              <div style={{ fontFamily: t.fontTitle, fontSize: 20, color: t.accent }}>Jane Eyre Essay Tutor</div>
-              <div style={{ fontSize: 12, color: t.subtext, marginTop: 2 }}>A thinking partner for essay writing</div>
+              <div style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 16 : 20, color: t.accent }}>Jane Eyre Essay Tutor</div>
+              {!isMobile && <div style={{ fontSize: 12, color: t.subtext, marginTop: 2 }}>A thinking partner for essay writing</div>}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, color: t.subtext, fontWeight: 500 }}>Theme</span>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {!isMobile && <span style={{ fontSize: 11, color: t.subtext, fontWeight: 500 }}>Theme</span>}
               {Object.entries(swatchColors).map(([name, colors]) => (
                 <div
                   key={name}
                   onClick={() => setTheme(name)}
                   title={name.charAt(0).toUpperCase() + name.slice(1)}
                   style={{
-                    width: 18, height: 18, borderRadius: "50%", cursor: "pointer",
+                    width: 16, height: 16, borderRadius: "50%", cursor: "pointer",
                     background: colors.outer,
-                    boxShadow: `inset 0 0 0 5px ${colors.inner}${theme === name ? `, 0 0 0 2px ${colors.outer}` : ""}`,
+                    boxShadow: `inset 0 0 0 4px ${colors.inner}${theme === name ? `, 0 0 0 2px ${colors.outer}` : ""}`,
                     transition: "transform 0.15s, box-shadow 0.15s",
                     transform: theme === name ? "scale(1.15)" : "scale(1)"
                   }}
@@ -189,9 +268,9 @@ export default function App() {
             {started && (
               <span
                 onClick={handleReset}
-                style={{ fontSize: 12, color: t.subtext, textDecoration: "underline", cursor: "pointer" }}
+                style={{ fontSize: 12, color: t.subtext, textDecoration: "underline", cursor: "pointer", whiteSpace: "nowrap" }}
               >
-                Start new topic
+                {isMobile ? "Reset" : "Start new topic"}
               </span>
             )}
           </div>
@@ -199,15 +278,15 @@ export default function App() {
 
         {/* Search screen */}
         {!started && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "auto" }}>
             <div style={{ maxWidth: 520, width: "100%", padding: "0 24px", textAlign: "center" }}>
-              <div style={{ fontFamily: t.fontTitle, fontSize: 30, color: t.accent, marginBottom: 8 }}>
+              <div style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 24 : 30, color: t.accent, marginBottom: 8 }}>
                 What would you like to explore?
               </div>
               <div style={{ fontSize: 14, color: t.subtext, marginBottom: 28, lineHeight: 1.6 }}>
                 Ask about a theme, character, or literary device in Jane Eyre and I'll find relevant passages to help you think through your essay.
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                 <input
                   style={{ flex: 1, border: `0.5px solid ${t.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 14, background: t.inputBg, color: t.text, fontFamily: "'Inter', sans-serif", outline: "none" }}
                   placeholder="e.g. how does Brontë use weather and nature imagery"
@@ -229,77 +308,37 @@ export default function App() {
 
         {/* Main layout */}
         {started && (
-          <div style={{ display: "flex", flex: 1, height: "calc(100vh - 57px)" }}>
-
-            {/* Left panel */}
-            <div style={{ width: "42%", borderRight: `0.5px solid ${t.border}`, overflowY: "auto", padding: 16, background: t.leftBg }}>
-              <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: t.subtext, marginBottom: 12 }}>
-                Retrieved Passages
-              </div>
-              {passages.map((p, i) => (
-                <div key={i} style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 6 }}>
-                    Passage {i + 1} · {p.chapter}
-                  </div>
-                  <div style={{ fontSize: 13, lineHeight: 1.65, color: t.text }}>
-                    {p.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Right panel */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg }}>
-              <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                {conversation.map((msg, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: msg.role === "student" ? "flex-end" : "flex-start" }}>
-                    <div style={{
-                      maxWidth: msg.role === "student" ? "80%" : "88%",
-                      background: msg.role === "student" ? t.accent : t.surface,
-                      border: msg.role === "student" ? "none" : `0.5px solid ${t.border}`,
-                      borderRadius: msg.role === "student" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                      padding: "12px 14px"
-                    }}>
-                      {msg.role === "tutor" && (
-                        <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 5 }}>
-                          Tutor
-                        </div>
-                      )}
-                      <div style={{ fontSize: 13, lineHeight: 1.6, color: msg.role === "student" ? t.accentText : t.text, fontWeight: msg.role === "student" ? 500 : 400 }}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  </div>
+          isMobile ? (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              {/* Tabs */}
+              <div style={{ display: "flex", borderBottom: `0.5px solid ${t.border}`, flexShrink: 0 }}>
+                {["chat", "passages"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      flex: 1, padding: "10px", fontSize: 13, fontFamily: "'Inter', sans-serif", fontWeight: 500,
+                      border: "none", borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
+                      background: "transparent", color: activeTab === tab ? t.accent : t.subtext, cursor: "pointer",
+                      textTransform: "capitalize"
+                    }}
+                  >
+                    {tab === "passages" ? `Passages (${passages.length})` : "Chat"}
+                  </button>
                 ))}
-                {loading && (
-                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                    <div style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: "12px 12px 12px 2px", padding: "12px 14px", fontSize: 13, color: t.subtext }}>
-                      Thinking...
-                    </div>
-                  </div>
-                )}
               </div>
-
-              {/* Input */}
-              <div style={{ borderTop: `0.5px solid ${t.border}`, padding: "12px 14px", display: "flex", gap: 8, background: t.leftBg }}>
-                <input
-                  style={{ flex: 1, border: `0.5px solid ${t.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: t.inputBg, color: t.text, fontFamily: "'Inter', sans-serif", outline: "none" }}
-                  placeholder="Respond to the tutor..."
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && !loading && handleChat()}
-                  disabled={loading}
-                />
-                <button
-                  onClick={handleChat}
-                  disabled={loading || !input.trim()}
-                  style={{ background: t.accent, color: t.accentText, border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontFamily: "'Inter', sans-serif", fontWeight: 500, cursor: "pointer", opacity: loading || !input.trim() ? 0.5 : 1 }}
-                >
-                  Send
-                </button>
-              </div>
+              {activeTab === "chat" ? <ChatPanel /> : <PassagesPanel />}
             </div>
-          </div>
+          ) : (
+            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+              {/* Left panel */}
+              <div style={{ width: "42%", borderRight: `0.5px solid ${t.border}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <PassagesPanel />
+              </div>
+              {/* Right panel */}
+              <ChatPanel />
+            </div>
+          )
         )}
       </div>
     </div>
