@@ -1,14 +1,12 @@
-from dotenv import load_dotenv
-load_dotenv()
-
+import os
 from openai import OpenAI
 import chromadb
 import anthropic
 
-openai_client = OpenAI()
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="jane_eyre")
-anthropic_client = anthropic.Anthropic()
+anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 SYSTEM_PROMPT = """You are a thoughtful English literature tutor helping a high school student think through Jane Eyre. You have been given several passages from the novel retrieved based on the student's question. Your job is not to answer for the student but to help them think.
 

@@ -1,9 +1,11 @@
+import os
 from dotenv import load_dotenv
 load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import anthropic
 import chromadb
 from openai import OpenAI
