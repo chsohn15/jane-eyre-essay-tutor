@@ -2,13 +2,14 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from typing import List
-import anthropic
-import chromadb
-from openai import OpenAI
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from tutor import (
     expand_query,
@@ -18,33 +19,42 @@ from tutor import (
     SYSTEM_PROMPT
 )
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+origins = ["http://localhost:5173"]
+if os.environ.get("FRONTEND_URL"):
+    origins.append(os.environ["FRONTEND_URL"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class StartRequest(BaseModel):
-    question: str
+    question: str = Field(..., min_length=1, max_length=500)
 
 class Message(BaseModel):
     role: str
-    content: str
+    content: str = Field(..., max_length=2000)
 
 class ChatRequest(BaseModel):
-    student_message: str
-    messages: List[Message]
+    student_message: str = Field(..., min_length=1, max_length=500)
+    messages: List[Message] = Field(..., max_length=50)
 
 @app.post("/start")
-async def start(request: StartRequest):
-    expanded = expand_query(request.question)
+@limiter.limit("10/minute")
+async def start(request: Request, body: StartRequest):
+    expanded = expand_query(body.question)
     passages = retrieve_passages(expanded)
     formatted = format_passages_for_claude(passages)
 
-    first_message = f"""The student asks: "{request.question}"
+    first_message = f"""The student asks: "{body.question}"
 
 Here are the relevant passages from Jane Eyre:
 {formatted}
@@ -69,9 +79,10 @@ Please help the student think through these passages using the Socratic approach
     }
 
 @app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    messages = [{"role": m.role, "content": m.content} for m in request.messages]
-    messages.append({"role": "user", "content": request.student_message})
+@limiter.limit("20/minute")
+async def chat_endpoint(request: Request, body: ChatRequest):
+    messages = [{"role": m.role, "content": m.content} for m in body.messages]
+    messages.append({"role": "user", "content": body.student_message})
     tutor_response = chat(messages)
     messages.append({"role": "assistant", "content": tutor_response})
 
