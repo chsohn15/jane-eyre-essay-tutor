@@ -163,7 +163,7 @@ export default function App() {
     </svg>
   )
 
-  const PassagesPanel = () => (
+  const passagesPanel = (
     <div style={{ overflowY: "auto", padding: 16, background: t.leftBg, flex: 1 }}>
       <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: t.subtext, marginBottom: 12 }}>
         Retrieved Passages
@@ -181,7 +181,7 @@ export default function App() {
     </div>
   )
 
-  const ChatPanel = () => (
+  const chatPanel = (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg, overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {conversation.map((msg, i) => (
@@ -327,16 +327,16 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              {activeTab === "chat" ? <ChatPanel /> : <PassagesPanel />}
+              {activeTab === "chat" ? chatPanel : passagesPanel}
             </div>
           ) : (
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
               {/* Left panel */}
               <div style={{ width: "42%", borderRight: `0.5px solid ${t.border}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <PassagesPanel />
+                {passagesPanel}
               </div>
               {/* Right panel */}
-              <ChatPanel />
+              {chatPanel}
             </div>
           )
         )}
