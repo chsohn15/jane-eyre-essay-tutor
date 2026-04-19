@@ -41,7 +41,7 @@ class StartRequest(BaseModel):
 
 class Message(BaseModel):
     role: str
-    content: str = Field(..., max_length=2000)
+    content: str = Field(..., max_length=20000)
 
 class ChatRequest(BaseModel):
     student_message: str = Field(..., min_length=1, max_length=500)
