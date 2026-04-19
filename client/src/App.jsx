@@ -1,7 +1,16 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import axios from "axios"
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000"
+
+function getUserId() {
+  let id = localStorage.getItem("je-user-id")
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem("je-user-id", id)
+  }
+  return id
+}
 
 const themes = {
   midnight: {
@@ -62,6 +71,11 @@ export default function App() {
   const [started, setStarted] = useState(false)
   const [activeTab, setActiveTab] = useState("chat")
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+  const [showHistory, setShowHistory] = useState(false)
+  const [savedChats, setSavedChats] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [savedId, setSavedId] = useState(null)
+  const userId = useRef(getUserId())
 
   const t = themes[theme]
 
@@ -83,9 +97,62 @@ export default function App() {
     return () => window.removeEventListener("resize", handler)
   }, [])
 
+  async function loadHistory() {
+    try {
+      const res = await axios.get(`${API}/chats/${userId.current}`)
+      setSavedChats(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  function openHistory() {
+    setShowHistory(true)
+    loadHistory()
+  }
+
+  async function handleSave() {
+    if (saving || savedId) return
+    setSaving(true)
+    try {
+      const res = await axios.post(`${API}/chats`, {
+        user_id: userId.current,
+        question,
+        conversation,
+        messages,
+        passages,
+      })
+      setSavedId(res.data.id)
+    } catch (err) {
+      console.error(err)
+    }
+    setSaving(false)
+  }
+
+  async function handleDeleteChat(chatId) {
+    try {
+      await axios.delete(`${API}/chats/${chatId}`, { params: { user_id: userId.current } })
+      setSavedChats(prev => prev.filter(c => c.id !== chatId))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  function loadChat(chat) {
+    setQuestion(chat.question)
+    setPassages(chat.passages)
+    setMessages(chat.messages)
+    setConversation(chat.conversation)
+    setSavedId(chat.id)
+    setStarted(true)
+    setShowHistory(false)
+    setActiveTab("chat")
+  }
+
   async function handleStart() {
     if (!question.trim()) return
     setLoading(true)
+    setSavedId(null)
     try {
       const res = await axios.post(`${API}/start`, { question })
       setPassages(res.data.passages)
@@ -104,6 +171,7 @@ export default function App() {
     const studentMessage = input
     setInput("")
     setConversation(prev => [...prev, { role: "student", text: studentMessage }])
+    setSavedId(null)
     setLoading(true)
     try {
       const res = await axios.post(`${API}/chat`, {
@@ -125,6 +193,7 @@ export default function App() {
     setConversation([])
     setInput("")
     setStarted(false)
+    setSavedId(null)
   }
 
   const swatchColors = {
@@ -233,9 +302,46 @@ export default function App() {
     </div>
   )
 
+  const historyDrawer = showHistory && (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex" }}>
+      <div style={{ flex: 1, background: "rgba(0,0,0,0.4)" }} onClick={() => setShowHistory(false)} />
+      <div style={{ width: Math.min(380, window.innerWidth), background: t.surface, borderLeft: `0.5px solid ${t.border}`, display: "flex", flexDirection: "column", height: "100%" }}>
+        <div style={{ padding: "16px 18px", borderBottom: `0.5px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>Saved Chats</div>
+          <button onClick={() => setShowHistory(false)} style={{ background: "none", border: "none", cursor: "pointer", color: t.subtext, fontSize: 18, lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+          {savedChats.length === 0 && (
+            <div style={{ fontSize: 13, color: t.subtext, textAlign: "center", marginTop: 40 }}>No saved chats yet.</div>
+          )}
+          {savedChats.map(chat => (
+            <div key={chat.id} style={{ background: t.bg, border: `0.5px solid ${t.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}
+              onClick={() => loadChat(chat)}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: t.text, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {chat.question}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 11, color: t.subtext }}>
+                  {new Date(chat.created_at).toLocaleDateString()} · {chat.conversation.length} messages
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); handleDeleteChat(chat.id) }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: t.subtext, fontSize: 12, padding: "2px 4px" }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div style={{ height: "100vh", overflow: "hidden", background: t.bg, color: t.text, fontFamily: "'Inter', sans-serif", transition: "background 0.25s", position: "relative" }}>
       <Texture />
+      {historyDrawer}
       <div style={{ position: "relative", zIndex: 1, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
@@ -265,13 +371,28 @@ export default function App() {
                 />
               ))}
             </div>
+            <button
+              onClick={openHistory}
+              style={{ background: "none", border: `0.5px solid ${t.border}`, borderRadius: 7, padding: "5px 10px", fontSize: 12, color: t.subtext, fontFamily: "'Inter', sans-serif", cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              {isMobile ? "History" : "Saved chats"}
+            </button>
             {started && (
-              <span
-                onClick={handleReset}
-                style={{ fontSize: 12, color: t.subtext, textDecoration: "underline", cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {isMobile ? "Reset" : "Start new topic"}
-              </span>
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !!savedId}
+                  style={{ background: savedId ? "none" : t.accent, border: savedId ? `0.5px solid ${t.border}` : "none", borderRadius: 7, padding: "5px 10px", fontSize: 12, color: savedId ? t.subtext : t.accentText, fontFamily: "'Inter', sans-serif", fontWeight: 500, cursor: saving || savedId ? "default" : "pointer", whiteSpace: "nowrap", opacity: saving ? 0.6 : 1 }}
+                >
+                  {savedId ? "Saved" : saving ? "Saving..." : "Save chat"}
+                </button>
+                <span
+                  onClick={handleReset}
+                  style={{ fontSize: 12, color: t.subtext, textDecoration: "underline", cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  {isMobile ? "Reset" : "Start new topic"}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -310,7 +431,6 @@ export default function App() {
         {started && (
           isMobile ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              {/* Tabs */}
               <div style={{ display: "flex", borderBottom: `0.5px solid ${t.border}`, flexShrink: 0 }}>
                 {["chat", "passages"].map(tab => (
                   <button
@@ -331,11 +451,9 @@ export default function App() {
             </div>
           ) : (
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-              {/* Left panel */}
               <div style={{ width: "42%", borderRight: `0.5px solid ${t.border}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {passagesPanel}
               </div>
-              {/* Right panel */}
               {chatPanel}
             </div>
           )
