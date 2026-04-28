@@ -12,7 +12,7 @@ const themes = {
     accentText: "#0F0E17",
     text: "#C9C7D4",
     textStrong: "#4DFFC4",
-    subtext: "#6B6880",
+    subtext: "#8E8BA0",
     inputBg: "#0F0E17",
     leftBg: "#0F0E17",
     fontTitle: "'Playfair Display', serif",
@@ -23,11 +23,11 @@ const themes = {
     bg: "#FDF8F2",
     surface: "#FFF8F0",
     border: "#E8DDD0",
-    accent: "#C07A4F",
+    accent: "#A0522D",
     accentText: "#fff",
     text: "#3D2B1F",
-    textStrong: "#C07A4F",
-    subtext: "#A0856E",
+    textStrong: "#A0522D",
+    subtext: "#7A5C48",
     inputBg: "#fff",
     leftBg: "#FFFBF7",
     fontTitle: "'DM Serif Display', serif",
@@ -38,11 +38,11 @@ const themes = {
     bg: "#F4F1F8",
     surface: "#fff",
     border: "#DDD6EA",
-    accent: "#7C6BAE",
+    accent: "#5A4A8A",
     accentText: "#fff",
     text: "#3B2F5E",
-    textStrong: "#7C6BAE",
-    subtext: "#9B8DB8",
+    textStrong: "#5A4A8A",
+    subtext: "#6B5E8A",
     inputBg: "#fff",
     leftBg: "#FAF8FD",
     fontTitle: "'Playfair Display', serif",
@@ -50,6 +50,11 @@ const themes = {
     textureOpacity: 0.07,
   }
 }
+
+const focusStyle = (color) => ({
+  outline: `2px solid ${color}`,
+  outlineOffset: "2px",
+})
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("je-theme") || "midnight")
@@ -129,12 +134,12 @@ export default function App() {
 
   const swatchColors = {
     midnight: { outer: "#4DFFC4", inner: "#0F0E17" },
-    parchment: { outer: "#C07A4F", inner: "#FDF8F2" },
-    lavender: { outer: "#7C6BAE", inner: "#F4F1F8" },
+    parchment: { outer: "#A0522D", inner: "#FDF8F2" },
+    lavender: { outer: "#5A4A8A", inner: "#F4F1F8" },
   }
 
   const Bird = () => (
-    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <path d="M4 22 Q10 18 16 20 Q20 21 24 19" fill="none" stroke={t.border} strokeWidth="1.2" strokeLinecap="round"/>
       <path d="M16 20 L15 24" fill="none" stroke={t.border} strokeWidth="1" strokeLinecap="round"/>
       <path d="M20 19 L19 23" fill="none" stroke={t.border} strokeWidth="1" strokeLinecap="round"/>
@@ -150,7 +155,7 @@ export default function App() {
   )
 
   const Texture = () => (
-    <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, opacity: t.textureOpacity }} xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" focusable="false" style={{ position: "fixed", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, opacity: t.textureOpacity }} xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id="damask" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
           <path d="M20 2 C24 8 32 8 32 14 C32 20 26 22 20 28 C14 22 8 20 8 14 C8 8 16 8 20 2Z" fill="none" stroke={t.textureColor} strokeWidth="0.5"/>
@@ -164,48 +169,50 @@ export default function App() {
   )
 
   const passagesPanel = (
-    <div style={{ overflowY: "auto", padding: 16, background: t.leftBg, flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: t.subtext, marginBottom: 12 }}>
+    <div role="region" aria-label="Retrieved passages" style={{ overflowY: "auto", padding: 16, background: t.leftBg, flex: 1 }}>
+      <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: t.subtext, margin: "0 0 12px" }}>
         Retrieved Passages
-      </div>
+      </p>
       {passages.map((p, i) => (
-        <div key={i} style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 6 }}>
+        <article key={i} style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
+          <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, margin: "0 0 6px" }}>
             Passage {i + 1} · {p.chapter}
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.65, color: t.text }}>
+          </p>
+          <p style={{ fontSize: 13, lineHeight: 1.65, color: t.text, margin: 0 }}>
             {p.text}
-          </div>
-        </div>
+          </p>
+        </article>
       ))}
     </div>
   )
 
   const chatPanel = (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: t.bg, overflow: "hidden" }}>
-      <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div role="log" aria-live="polite" aria-label="Conversation" style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {conversation.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "student" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth: msg.role === "student" ? "80%" : "88%",
-              background: msg.role === "student" ? t.accent : t.surface,
-              border: msg.role === "student" ? "none" : `0.5px solid ${t.border}`,
-              borderRadius: msg.role === "student" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-              padding: "12px 14px"
-            }}>
+            <div
+              aria-label={msg.role === "tutor" ? "Tutor" : "You"}
+              style={{
+                maxWidth: msg.role === "student" ? "80%" : "88%",
+                background: msg.role === "student" ? t.accent : t.surface,
+                border: msg.role === "student" ? "none" : `0.5px solid ${t.border}`,
+                borderRadius: msg.role === "student" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                padding: "12px 14px"
+              }}>
               {msg.role === "tutor" && (
-                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, marginBottom: 5 }}>
+                <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: t.textStrong, margin: "0 0 5px" }}>
                   Tutor
-                </div>
+                </p>
               )}
-              <div style={{ fontSize: 13, lineHeight: 1.6, color: msg.role === "student" ? t.accentText : t.text, fontWeight: msg.role === "student" ? 500 : 400 }}>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: msg.role === "student" ? t.accentText : t.text, fontWeight: msg.role === "student" ? 500 : 400, margin: 0 }}>
                 {msg.text}
-              </div>
+              </p>
             </div>
           </div>
         ))}
         {loading && (
-          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+          <div aria-live="polite" style={{ display: "flex", justifyContent: "flex-start" }}>
             <div style={{ background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: "12px 12px 12px 2px", padding: "12px 14px", fontSize: 13, color: t.subtext }}>
               Thinking...
             </div>
@@ -214,7 +221,11 @@ export default function App() {
       </div>
 
       <div style={{ borderTop: `0.5px solid ${t.border}`, padding: "12px 14px", display: "flex", gap: 8, background: t.leftBg }}>
+        <label htmlFor="chat-input" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap" }}>
+          Respond to the tutor
+        </label>
         <input
+          id="chat-input"
           style={{ flex: 1, border: `0.5px solid ${t.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, background: t.inputBg, color: t.text, fontFamily: "'Inter', sans-serif", outline: "none" }}
           placeholder="Respond to the tutor..."
           value={input}
@@ -226,6 +237,8 @@ export default function App() {
           onClick={handleChat}
           disabled={loading || !input.trim()}
           style={{ background: t.accent, color: t.accentText, border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontFamily: "'Inter', sans-serif", fontWeight: 500, cursor: "pointer", opacity: loading || !input.trim() ? 0.5 : 1 }}
+          onFocus={e => Object.assign(e.target.style, focusStyle(t.text))}
+          onBlur={e => { e.target.style.outline = "none" }}
         >
           Send
         </button>
@@ -239,55 +252,70 @@ export default function App() {
       <div style={{ position: "relative", zIndex: 1, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
-        <div style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: isMobile ? "10px 14px" : "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={handleReset}>
+        <header style={{ background: t.bg, borderBottom: `0.5px solid ${t.border}`, padding: isMobile ? "10px 14px" : "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <button
+            onClick={handleReset}
+            aria-label="Jane Eyre Essay Tutor — return to home"
+            style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" }}
+            onFocus={e => Object.assign(e.target.style, focusStyle(t.accent))}
+            onBlur={e => { e.target.style.outline = "none" }}
+          >
             <Bird />
             <div>
               <div style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 16 : 20, color: t.accent }}>Jane Eyre Essay Tutor</div>
               {!isMobile && <div style={{ fontSize: 12, color: t.subtext, marginTop: 2 }}>A thinking partner for essay writing</div>}
             </div>
-          </div>
+          </button>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {!isMobile && <span style={{ fontSize: 11, color: t.subtext, fontWeight: 500 }}>Theme</span>}
+            <div role="group" aria-label="Choose theme" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {!isMobile && <span aria-hidden="true" style={{ fontSize: 11, color: t.subtext, fontWeight: 500 }}>Theme</span>}
               {Object.entries(swatchColors).map(([name, colors]) => (
-                <div
+                <button
                   key={name}
                   onClick={() => setTheme(name)}
-                  title={name.charAt(0).toUpperCase() + name.slice(1)}
+                  aria-label={`${name.charAt(0).toUpperCase() + name.slice(1)} theme${theme === name ? " (selected)" : ""}`}
+                  aria-pressed={theme === name}
                   style={{
                     width: 16, height: 16, borderRadius: "50%", cursor: "pointer",
-                    background: colors.outer,
+                    background: colors.outer, border: "none", padding: 0,
                     boxShadow: `inset 0 0 0 4px ${colors.inner}${theme === name ? `, 0 0 0 2px ${colors.outer}` : ""}`,
                     transition: "transform 0.15s, box-shadow 0.15s",
                     transform: theme === name ? "scale(1.15)" : "scale(1)"
                   }}
+                  onFocus={e => Object.assign(e.target.style, focusStyle(t.accent))}
+                  onBlur={e => { e.target.style.outline = "none" }}
                 />
               ))}
             </div>
             {started && (
-              <span
+              <button
                 onClick={handleReset}
-                style={{ fontSize: 12, color: t.subtext, textDecoration: "underline", cursor: "pointer", whiteSpace: "nowrap" }}
+                style={{ fontSize: 12, color: t.subtext, background: "none", border: "none", textDecoration: "underline", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Inter', sans-serif", padding: 0 }}
+                onFocus={e => Object.assign(e.target.style, focusStyle(t.accent))}
+                onBlur={e => { e.target.style.outline = "none" }}
               >
                 {isMobile ? "Reset" : "Start new topic"}
-              </span>
+              </button>
             )}
           </div>
-        </div>
+        </header>
 
         {/* Search screen */}
         {!started && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "auto" }}>
+          <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "auto" }}>
             <div style={{ maxWidth: 520, width: "100%", padding: "0 24px", textAlign: "center" }}>
-              <div style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 24 : 30, color: t.accent, marginBottom: 8 }}>
+              <h1 style={{ fontFamily: t.fontTitle, fontSize: isMobile ? 24 : 30, color: t.accent, margin: "0 0 8px" }}>
                 What would you like to explore?
-              </div>
-              <div style={{ fontSize: 14, color: t.subtext, marginBottom: 28, lineHeight: 1.6 }}>
+              </h1>
+              <p style={{ fontSize: 14, color: t.subtext, margin: "0 0 28px", lineHeight: 1.6 }}>
                 Ask about a theme, character, or literary device in Jane Eyre and I'll find relevant passages to help you think through your essay.
-              </div>
+              </p>
               <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
+                <label htmlFor="question-input" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap" }}>
+                  Ask a question about Jane Eyre
+                </label>
                 <input
+                  id="question-input"
                   style={{ flex: 1, border: `0.5px solid ${t.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 14, background: t.inputBg, color: t.text, fontFamily: "'Inter', sans-serif", outline: "none" }}
                   placeholder="e.g. how does Brontë use weather and nature imagery"
                   value={question}
@@ -298,23 +326,28 @@ export default function App() {
                   onClick={handleStart}
                   disabled={loading}
                   style={{ background: t.accent, color: t.accentText, border: "none", borderRadius: 8, padding: "12px 20px", fontSize: 14, fontFamily: "'Inter', sans-serif", fontWeight: 500, cursor: "pointer", opacity: loading ? 0.6 : 1 }}
+                  onFocus={e => Object.assign(e.target.style, focusStyle(t.text))}
+                  onBlur={e => { e.target.style.outline = "none" }}
                 >
                   {loading ? "Thinking..." : "Explore"}
                 </button>
               </div>
             </div>
-          </div>
+          </main>
         )}
 
         {/* Main layout */}
         {started && (
           isMobile ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              {/* Tabs */}
-              <div style={{ display: "flex", borderBottom: `0.5px solid ${t.border}`, flexShrink: 0 }}>
+              <div role="tablist" aria-label="View" style={{ display: "flex", borderBottom: `0.5px solid ${t.border}`, flexShrink: 0 }}>
                 {["chat", "passages"].map(tab => (
                   <button
                     key={tab}
+                    role="tab"
+                    aria-selected={activeTab === tab}
+                    aria-controls={`tabpanel-${tab}`}
+                    id={`tab-${tab}`}
                     onClick={() => setActiveTab(tab)}
                     style={{
                       flex: 1, padding: "10px", fontSize: 13, fontFamily: "'Inter', sans-serif", fontWeight: 500,
@@ -322,22 +355,24 @@ export default function App() {
                       background: "transparent", color: activeTab === tab ? t.accent : t.subtext, cursor: "pointer",
                       textTransform: "capitalize"
                     }}
+                    onFocus={e => Object.assign(e.target.style, focusStyle(t.accent))}
+                    onBlur={e => { e.target.style.outline = "none" }}
                   >
                     {tab === "passages" ? `Passages (${passages.length})` : "Chat"}
                   </button>
                 ))}
               </div>
-              {activeTab === "chat" ? chatPanel : passagesPanel}
+              <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                {activeTab === "chat" ? chatPanel : passagesPanel}
+              </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-              {/* Left panel */}
+            <main style={{ display: "flex", flex: 1, overflow: "hidden" }}>
               <div style={{ width: "42%", borderRight: `0.5px solid ${t.border}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {passagesPanel}
               </div>
-              {/* Right panel */}
               {chatPanel}
-            </div>
+            </main>
           )
         )}
       </div>
