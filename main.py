@@ -16,12 +16,27 @@ from tutor import (
     retrieve_passages,
     format_passages_for_claude,
     chat,
+    collection,
     SYSTEM_PROMPT
 )
+from embed import embed_chunks, store_chunks
+from parse import load_text, strip_gutenberg, split_into_chapters, split_into_chunks
 
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    if collection.count() == 0:
+        print("Collection is empty — building embeddings...")
+        raw = load_text("jane_eyre.txt")
+        clean = strip_gutenberg(raw)
+        chapters = split_into_chapters(clean)
+        chunks = split_into_chunks(chapters)
+        embeddings = embed_chunks(chunks)
+        store_chunks(chunks, embeddings)
+        print("Embeddings ready.")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
