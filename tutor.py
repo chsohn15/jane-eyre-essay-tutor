@@ -35,34 +35,44 @@ Never write the essay for them. Always reference specific passages by chapter.""
 def expand_query(question):
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=100,
-        system="You are helping retrieve passages from Jane Eyre for a high school student. Rewrite the student's question as a specific, concrete, retrieval-friendly query that will find the most relevant passages. Return only the rewritten query, nothing else.",
+        max_tokens=300,
+        system="You are helping retrieve passages from Jane Eyre for a high school student. Generate 3 different retrieval-friendly queries that would find relevant passages from different angles. Return exactly 3 queries, one per line, nothing else.",
         messages=[{"role": "user", "content": question}]
     )
-    expanded = response.content[0].text.strip()
-    print(f"Expanded query: {expanded}\n")
-    return expanded
+    queries = [q.strip() for q in response.content[0].text.strip().splitlines() if q.strip()]
+    print(f"Expanded queries: {queries}\n")
+    return queries
 
-def retrieve_passages(question, n_results=5):
-    response = openai_client.embeddings.create(
-        input=[question],
+def retrieve_passages(queries, n_results=5):
+    embeddings_response = openai_client.embeddings.create(
+        input=queries,
         model="text-embedding-3-small"
     )
-    query_embedding = response.data[0].embedding
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results
-    )
-    passages = []
-    for doc, metadata in zip(results["documents"][0], results["metadatas"][0]):
-        passages.append({
-            "text": doc,
-            "chapter": metadata["chapter"],
-            "paragraph": metadata["paragraph"],
-            "context_before": metadata["context_before"],
-            "context_after": metadata["context_after"]
-        })
-    return passages
+    query_embeddings = [item.embedding for item in embeddings_response.data]
+
+    seen_ids = set()
+    candidates = []
+    for embedding in query_embeddings:
+        results = collection.query(
+            query_embeddings=[embedding],
+            n_results=n_results * 2
+        )
+        for doc, metadata, id_ in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+            results["ids"][0]
+        ):
+            if id_ not in seen_ids:
+                seen_ids.add(id_)
+                candidates.append({
+                    "text": doc,
+                    "chapter": metadata["chapter"],
+                    "paragraph": metadata["paragraph"],
+                    "context_before": metadata["context_before"],
+                    "context_after": metadata["context_after"]
+                })
+
+    return candidates[:n_results]
 
 def format_passages_for_claude(passages):
     formatted = ""
